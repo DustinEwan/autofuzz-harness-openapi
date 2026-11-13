@@ -7,9 +7,12 @@
 //     through the channel its document declares;
 //   - 5xx is `failed` via `http-5xx`: the service tried to accept the input and broke,
 //     and a stack in the body becomes fault frames;
-//   - a transport failure is `failed` via `transport`, and one dead service folds into
-//     one finding because the engine deduplicates findings on class, message, and top
-//     frame - the message names the code and the URL, never the input.
+//   - a transport failure is `failed` via `transport`. A dead socket has no frames, and
+//     the engine's finding identity is target id plus fault class plus top frame
+//     (`finding.rs:identity`), so every call to one target folds into one transport
+//     finding however many invocations ran: a dead service yields one finding per
+//     fuzzable target. The message names the code and the URL, never the input, for
+//     whoever reads the report - it is not what deduplicates.
 //
 // `invoke` never answers with an RPC error: an outcome the engine can file, count, and
 // deduplicate is always worth more than a dead connection.
