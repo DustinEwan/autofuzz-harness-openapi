@@ -1,0 +1,18 @@
+{
+  "project": "petstore",
+  "harness": {
+    "name": "openapi",
+    "options": {
+      "baseUrl": "http://127.0.0.1:{{port}}",
+      "openapi": "openapi.json",
+      "allowMutating": ["POST /discount", "POST /upload", "POST /accounts/{handle}"],
+      "destructive": [],
+      "headers": {},
+      "requestsPerSecond": 0,
+      "maxResponseBytes": 1048576
+    }
+  },
+  "oracles": {},
+  "budget": { "invocations": 2000, "wallClockMs": 60000, "workers": 0, "maxCorpus": 256, "strategy": "guided" },
+  "output": { "dir": ".autofuzz", "renderers": ["json"] }
+}

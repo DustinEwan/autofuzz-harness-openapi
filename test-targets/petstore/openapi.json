@@ -1,0 +1,96 @@
+{
+  "openapi": "3.0.3",
+  "info": { "title": "Petstore demo", "version": "1.0.0" },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health endpoint the conformance suite polls before it drives anything.",
+        "responses": { "200": { "description": "alive", "content": { "text/plain": { "schema": { "type": "string" } } } } }
+      }
+    },
+    "/ready": {
+      "get": {
+        "summary": "A zero-parameter operation that answers 200: the method-receiver property, whose receiver is the service itself.",
+        "responses": { "200": { "description": "ready", "content": { "text/plain": { "schema": { "type": "string" } } } } }
+      }
+    },
+    "/nonce": {
+      "get": {
+        "summary": "Echoes the lifecycle nonce: proof the harness reaches the service the suite started.",
+        "responses": {
+          "200": {
+            "description": "the nonce",
+            "content": { "application/json": { "schema": { "type": "object", "properties": { "nonce": { "type": "string" } }, "required": ["nonce"] } } }
+          }
+        }
+      }
+    },
+    "/internal": {
+      "get": {
+        "x-internal": true,
+        "summary": "Marked internal: discovery reports it not-public instead of fuzzing it.",
+        "responses": { "200": { "description": "internal only", "content": { "text/plain": { "schema": { "type": "string" } } } } }
+      }
+    },
+    "/discount": {
+      "post": {
+        "summary": "Apply a discount percentage. A negative percentage is a 422 refusal the document declares.",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Discount" } } }
+        },
+        "responses": {
+          "200": { "description": "applied", "content": { "application/json": { "schema": { "type": "object", "properties": { "total": { "type": "number" } } } } } },
+          "422": { "description": "refused", "content": { "application/json": { "schema": { "type": "object", "properties": { "error": { "type": "string" } } } } } }
+        }
+      }
+    },
+    "/upload": {
+      "post": {
+        "summary": "Accepts a file. The generator has no file to put in a multipart body, so discovery refuses the signature.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": { "type": "object", "properties": { "file": { "type": "string", "format": "binary" } }, "required": ["file"] }
+            }
+          }
+        },
+        "responses": { "200": { "description": "stored" } }
+      }
+    },
+    "/accounts/{handle}": {
+      "post": {
+        "summary": "Open an account under a handle. The Handle type is a binary blob no generated value can build.",
+        "parameters": [
+          { "name": "handle", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/Handle" } }
+        ],
+        "responses": { "200": { "description": "opened", "content": { "application/json": { "schema": { "type": "object", "properties": { "posted": { "type": "boolean" } } } } } } }
+      }
+    },
+    "/boom": {
+      "get": {
+        "summary": "Faults on every call: the service's own stack names service/server.mjs, never the document.",
+        "responses": {
+          "500": { "description": "the fault", "content": { "text/plain": { "schema": { "type": "string" } } } }
+        }
+      }
+    },
+    "/slow": {
+      "get": {
+        "summary": "Sleeps 10 seconds: only a harness that cuts its own call answers inside the deadline.",
+        "responses": { "200": { "description": "eventually", "content": { "text/plain": { "schema": { "type": "string" } } } } }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Discount": {
+        "type": "object",
+        "properties": { "amount": { "type": "number", "description": "discount percentage" } },
+        "required": ["amount"]
+      },
+      "Handle": { "type": "string", "format": "binary" }
+    }
+  }
+}
