@@ -55,7 +55,7 @@ jobs:
       - name: Assert the report
         run: |
           jq -e '((.violations | length) == 0)
-                 and ((.template.properties | map(select(.verdict == "not-applicable") | .id) | sort) == ["crash-unguarded","coverage-digest-live","stdout-purity"])
+                 and ((.template.properties | map(select(.verdict == "not-applicable") | .id) | sort) == ["coverage-digest-live","crash-unguarded","stdout-purity"])
                  and ((.template.properties | map(select(.verdict == "pass")) | length) == 7)' report.json
           jq -e '((.validator.properties | map(select(.verdict == "pass")) | length) == 5)
-                 and ((.validator.properties | map(select(.verdict == "not-applicable") | .id) | sort) == ["crash-unguarded","coverage-digest-live"])' report.json
+                 and ((.validator.properties | map(select(.verdict == "not-applicable") | .id) | sort) == ["coverage-digest-live","crash-unguarded"])' report.json
