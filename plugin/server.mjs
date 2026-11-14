@@ -53,7 +53,7 @@ const HANDLERS = {
     name: "openapi",
     version: "0.1.0",
     targetClass: "runtime",
-    capabilities: ["reproducer", "sideEffects", "concurrent"],
+    capabilities: ["reproducer", "sideEffects", "concurrent", "readiness"],
     languages: ["openapi"],
     discoverRequiresExecution: false,
   }),
@@ -140,6 +140,29 @@ const HANDLERS = {
       extension: "sh",
       script: renderReproducer({ request, operationName: target.name, documentName }),
     };
+  },
+
+  // Readiness proves reachability and dialogue, never health: any HTTP answer — 404,
+  // 401, even a 500 on every route — shows the service parses requests and answers
+  // them, and a scan against it is meaningful. Only a transport-level failure is
+  // not-ready, because every invocation would then fail the same way. HEAD is the
+  // cheap probe; a server that hangs up on HEAD still gets its GET.
+  async ready() {
+    if (options === null) throw new InvalidRequest("ready before discover: this connection has no baseUrl to probe");
+    const probe = new URL("/", options.baseUrl).href;
+    const signal = AbortSignal.timeout(2000);
+    for (const method of ["HEAD", "GET"]) {
+      try {
+        await fetch(probe, { method, redirect: "manual", signal });
+        return { ready: true };
+      } catch (cause) {
+        if (signal.aborted) return { ready: false, detail: `no HTTP response from ${probe} within 2000 ms` };
+        if (method === "GET") {
+          const reason = cause?.cause?.message ?? cause?.message ?? "fetch failed";
+          return { ready: false, detail: `no HTTP response from ${probe}: ${reason}` };
+        }
+      }
+    }
   },
 };
 

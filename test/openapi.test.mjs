@@ -85,9 +85,39 @@ test("handshake declares a runtime harness", async (t) => {
   assert.equal(result.protocolVersion, PROTOCOL_VERSION);
   assert.equal(result.name, "openapi");
   assert.equal(result.targetClass, "runtime");
-  assert.deepEqual(result.capabilities, ["reproducer", "sideEffects", "concurrent"]);
+  assert.deepEqual(result.capabilities, ["reproducer", "sideEffects", "concurrent", "readiness"]);
   assert.deepEqual(result.languages, ["openapi"]);
   assert.equal(result.discoverRequiresExecution, false);
+});
+
+test("ready answers true while the service answers HTTP", async (t) => {
+  const { plugin } = await started(t);
+  const { result } = await plugin.call("ready");
+  assert.deepEqual(result, { ready: true });
+});
+
+test("ready answers false with the transport reason when the service is down", async (t) => {
+  // Bind the fixture service to get a kernel-chosen port nothing else holds, kill it,
+  // and point the plugin at the corpse: the probe must report the refused socket, the
+  // abort the engine files before any worker spawns. Discovery still works because the
+  // document is a local file; only the probe notices the missing service.
+  const service = await startService(t);
+  const deadPort = service.port;
+  service.child.kill();
+  await new Promise((settle) => service.child.once("close", settle));
+  const plugin = startPlugin(t, { port: deadPort });
+  const frame = await plugin.call("discover", { root: petstore, include: null, exclude: null, configPath });
+  assert.equal(frame.error, undefined, JSON.stringify(frame.error));
+  const { result } = await plugin.call("ready");
+  assert.equal(result.ready, false);
+  assert.match(result.detail, /no HTTP response from http:\/\/127\.0\.0\.1:\d+\/: .*(ECONNREFUSED|failed)/, result.detail);
+});
+
+test("ready before discover is an invalid request, not a guess", async (t) => {
+  const plugin = startPlugin(t, { port: 1 });
+  const frame = await plugin.call("ready");
+  assert.equal(frame.error.code, -32600);
+  assert.match(frame.error.message, /no baseUrl/);
 });
 
 test("discovery lists six operations and skips three with reasons", async (t) => {
