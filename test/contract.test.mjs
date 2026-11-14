@@ -23,7 +23,8 @@ import * as wire from "../plugin/protocol.mjs";
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const docsDir = process.env.AFZ_DOCS ?? resolve(packageRoot, "..", "autofuzz", "docs");
-const schemaDir = join(docsDir, "schema");
+// One directory per protocol revision (engine decision 0016); this plugin speaks afz/1.
+const schemaDir = join(docsDir, "schema", "afz-1");
 const design = readFileSync(join(docsDir, "architecture.md"), "utf8");
 const guide = readFileSync(join(docsDir, "harness-authoring.md"), "utf8");
 
