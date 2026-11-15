@@ -73,6 +73,17 @@ const routes = {
     await new Promise((resolve) => setTimeout(resolve, 10000));
     return { status: 200, type: "text/plain", body: "eventually" };
   },
+
+  // `opaque-return`: an opaque download. The harness reads every response body as text
+  // and describes only a parsed JSON document, so these bytes have no value form for it
+  // at all - the call succeeded and answers `ok` with no value.
+  "GET /artifact": () => ({ status: 200, type: "application/octet-stream", body: Buffer.from([0x89, 0x41, 0x46, 0x5a, 0xff, 0xfe, 0x00, 0x01]) }),
+
+  // `unbuildable-symbol`: the service answers this route; the document simply declares no
+  // `job` parameter for the `{job}` placeholder in its path, so the harness can never fill
+  // the template. Never fuzzed: discovery accepts the signature and prepare reports the
+  // operation unbuildable.
+  "GET /export/x": () => ({ status: 200, type: "application/json", body: JSON.stringify({ rows: 12 }) }),
 };
 
 const server = createServer(async (request, response) => {

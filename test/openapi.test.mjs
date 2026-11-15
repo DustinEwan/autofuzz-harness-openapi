@@ -120,11 +120,11 @@ test("ready before discover is an invalid request, not a guess", async (t) => {
   assert.match(frame.error.message, /no baseUrl/);
 });
 
-test("discovery lists six operations and skips three with reasons", async (t) => {
+test("discovery lists eight operations and skips three with reasons", async (t) => {
   const { byName, skippedByName } = await started(t);
   assert.deepEqual(
     [...byName.keys()].sort(),
-    ["GET /boom", "GET /health", "GET /nonce", "GET /ready", "GET /slow", "POST /discount"],
+    ["GET /artifact", "GET /boom", "GET /export/{job}", "GET /health", "GET /nonce", "GET /ready", "GET /slow", "POST /discount"],
   );
   assert.deepEqual([...skippedByName.keys()].sort(), ["GET /internal", "POST /accounts/{handle}", "POST /upload"]);
 
@@ -166,6 +166,16 @@ test("a 200 with a JSON body answers ok with the body described", async (t) => {
   assert.equal(result.value.node, "object");
 });
 
+test("an opaque download answers ok with no value", async (t) => {
+  // `opaque-return`: the response is opaque bytes. The harness reads every body as text
+  // and describes only a parsed JSON document, so no ValueTree exists for this payload -
+  // and the call still answers ok rather than failing or erroring.
+  const { plugin, byName } = await started(t);
+  const { result } = await invoke(plugin, byName.get("GET /artifact").id, []);
+  assert.equal(result.kind, "ok");
+  assert.equal(result.value, null);
+});
+
 test("a 500 answers failed via http-5xx with frames naming the service", async (t) => {
   const { plugin, byName } = await started(t);
   const { result } = await invoke(plugin, byName.get("GET /boom").id, []);
@@ -204,6 +214,22 @@ test("an id this process never discovered answers UnknownTarget", async (t) => {
   assert.equal(result.kind, "failed");
   assert.equal(result.via, "discovery-error");
   assert.equal(result.fault.class, "UnknownTarget");
+});
+
+test("an operation whose path template cannot be filled is unbuildable, alone", async (t) => {
+  // `unbuildable-symbol`: the document declares no `job` parameter for the `{job}`
+  // placeholder in its path, so discovery accepts the signature and `prepare` is the
+  // first step that cannot build the call. The skip names that operation alone.
+  const { plugin, byName } = await started(t);
+  assert.ok(byName.has("GET /export/{job}"), "discovery dropped the operation instead of reporting it");
+  const broken = await plugin.call("prepare", { targetId: byName.get("GET /export/{job}").id, values: [] });
+  assert.deepEqual(broken.result, { ok: false, reason: "discovery-error" });
+  const sibling = await plugin.call("prepare", { targetId: byName.get("GET /ready").id, values: [] });
+  assert.equal(sibling.result.ok, true, "the unbuildable operation took its sibling down with it");
+  const outcome = await invoke(plugin, byName.get("GET /export/{job}").id, []);
+  assert.equal(outcome.result.kind, "failed");
+  assert.equal(outcome.result.via, "discovery-error");
+  assert.equal(outcome.result.fault.class, "UnbuildableOperation");
 });
 
 test("a mutating operation absent from allowMutating is skipped excluded", async (t) => {

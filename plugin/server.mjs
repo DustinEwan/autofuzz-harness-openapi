@@ -24,8 +24,8 @@ import { ERROR_CODES, JSONRPC_VERSION, PROTOCOL_VERSION, failure, success } from
 import { SpecError, loadOptions } from "./config.mjs";
 import { loadDocument } from "./spec.mjs";
 import { discover } from "./discover.mjs";
-import { MaterializeError, buildRequest, requestLine, responseToValueTree } from "./request.mjs";
-import { classifyResponse, deadlineCut, materializationBlocked, transportFailure, unknownTarget } from "./classify.mjs";
+import { BuildError, MaterializeError, buildRequest, requestLine, responseToValueTree } from "./request.mjs";
+import { classifyResponse, deadlineCut, materializationBlocked, transportFailure, unbuildableOperation, unknownTarget } from "./classify.mjs";
 import { renderReproducer } from "./repro.mjs";
 
 const OUT = process.stdout;
@@ -76,12 +76,15 @@ const HANDLERS = {
     const target = registry.get(params.targetId);
     if (target === undefined) return { ok: false, reason: "discovery-error" };
     // The summary is the request line without header values, which can carry
-    // credentials. A call that cannot be built yet still prepares: the outcome, not
-    // the answer here, is where a bad value reports.
+    // credentials. A value this call cannot materialize still prepares: the outcome, not
+    // the answer here, is where a bad value reports. An operation whose request cannot be
+    // built at all is the harness's own inability, and `discovery-error` is the reason the
+    // contract reserves for it - reported for that operation alone, never its siblings.
     let summary = target.name;
     try {
       summary = requestLine(buildRequest({ target, values: params.values ?? [], options }));
-    } catch {
+    } catch (cause) {
+      if (cause instanceof BuildError) return { ok: false, reason: "discovery-error" };
       // keep the operation name
     }
     return { ok: true, materialized: { handle: `http:${params.targetId}`, summary } };
@@ -98,6 +101,7 @@ const HANDLERS = {
     try {
       request = buildRequest({ target, values: params.values, options });
     } catch (cause) {
+      if (cause instanceof BuildError) return { ...unbuildableOperation(cause), durationMs: elapsed() };
       if (!(cause instanceof MaterializeError)) throw cause;
       return { ...materializationBlocked(cause), durationMs: elapsed() };
     }

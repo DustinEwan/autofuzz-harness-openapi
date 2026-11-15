@@ -77,6 +77,17 @@ export function unknownTarget(targetId) {
   };
 }
 
+// An operation the harness cannot build a request for at all - a path template no
+// parameter of the operation fills. The document is at fault, not the values, so this
+// reads as a discovery failure and folds into one finding per operation.
+export function unbuildableOperation(cause) {
+  return {
+    kind: "failed",
+    via: VIA_DISCOVERY_ERROR,
+    fault: { class: "UnbuildableOperation", message: String(cause.message ?? cause), frames: [] },
+  };
+}
+
 // A 5xx body names its source in whichever dialect the service writes: a V8 frame
 // `at fn (/abs/file.mjs:12:5)`, a bare `file:12:5`, or a Python line
 // `File "app.py", line 42`. Neither pattern matching nor the language is the point -

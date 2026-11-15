@@ -1,6 +1,6 @@
 # autofuzz harness: openapi
 
-A runtime harness for OpenAPI 3 services. It reads an OpenAPI JSON document, lowers each operation's parameters and request body to the generator's vocabulary, calls the running service over HTTP, and classifies each response as `ok`, `rejected`, or `failed` over the plugin protocol (`afz/1`). It conforms to the same suite the code-instrumenting harnesses pass, with three properties declared not-applicable for reasons stated in the manifest.
+A runtime harness for OpenAPI 3 services. It reads an OpenAPI JSON document, lowers each operation's parameters and request body to the generator's vocabulary, calls the running service over HTTP, and classifies each response as `ok`, `rejected`, or `failed` over the plugin protocol (`afz/1`). It conforms to the same suite the code-instrumenting harnesses pass: nine of the template's twelve properties are realized against the fixture service, and three are declared not-applicable for reasons stated in the manifest.
 
 Host runtime: Node 24 or newer, standard library only. The plugin installs no dependencies and has none, so there is nothing to build and nothing to audit.
 
@@ -76,6 +76,8 @@ This manifest carries no `install` and no `build`, because the plugin has no dep
 `conformance/validate.mjs` is the project's own fixture validator: it reads the rendered document and service source with the standard library only — never the plugin, never the emitter — and the suite requires its verdicts to agree with the plugin's.
 
 Three properties are declared not-applicable, and CI asserts these are the only such lines: a 5xx from a service names the service's source file and never the document discovery read the operation from; the harness observes no per-call edges inside a service it does not instrument; and the target's stdout lives in another process, so the protocol channel cannot be polluted by target output.
+
+The two properties template v1 grew by are realized as well. `GET /artifact` answers an opaque download: the harness reads every response body as text and describes only a parsed JSON document, so the payload has no value form and the call answers `ok` with none. `GET /export/{job}` declares a path placeholder no parameter of the operation fills, so discovery accepts its signature on the declared parameters, `prepare` reports that one operation unbuildable with reason `discovery-error`, and every sibling still prepares.
 
 ## The contract
 

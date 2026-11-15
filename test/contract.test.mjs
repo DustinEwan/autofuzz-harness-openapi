@@ -55,11 +55,12 @@ function tags(document, field, what) {
 }
 
 test("the protocol version matches the guide", () => {
-  // docs/schema/handshake.json types protocolVersion as a plain string and carries no
-  // value, so the guide is the only document that pins the literal.
+  // docs/schema/afz-1/handshake.json types protocolVersion as a plain string and carries
+  // no value, so the guide is the only document that pins it. A guide that drifts from
+  // `crates/afz-protocol` fails here.
   const text = guide.replace(/\s+/g, " ");
-  const stated = text.match(/`PROTOCOL_VERSION` is `"([^"]+)"/);
-  assert.ok(stated !== null, "the guide no longer states the PROTOCOL_VERSION literal");
+  const stated = text.match(/`protocolVersion` is `"([^"]+)"/);
+  assert.ok(stated !== null, "the guide no longer states the protocolVersion literal");
   assert.equal(wire.PROTOCOL_VERSION, stated[1]);
 });
 

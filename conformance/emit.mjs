@@ -2,7 +2,7 @@
 // Render the conformance fixture project for the openapi harness.
 //
 // `afz validate-harness` and `afz-xtask check-harness` validate a plugin against the
-// template (`crates/afz-conformance/template/v1.json`): ten semantic properties stated
+// template (`crates/afz-conformance/template/v1.json`): twelve semantic properties stated
 // as wire-level expectations. This emitter copies the petstore package from
 // `test-targets/petstore` - the document, the service, and the scan project are the
 // same files `test/openapi.test.mjs` drives - bakes a fresh nonce into the service and
@@ -20,6 +20,12 @@
 // only such lines for this harness: a 5xx names the service's source and never the
 // document, the harness observes no per-call edges inside a service it does not
 // instrument, and the target's stdout lives in another process.
+//
+// The two properties v1 grew by are both realized here. `GET /artifact` answers an opaque
+// download the harness cannot describe as a value, and the call still answers ok;
+// `GET /export/{job}` declares a path template no parameter of the operation fills, so
+// discovery accepts its signature, prepare reports the operation unbuildable, and every
+// sibling still prepares.
 
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
@@ -55,6 +61,8 @@ function manifest(nonce) {
       },
       "reproducer-script": { symbol: "GET /boom", input: [] },
       "deadline-sleep": { symbol: "GET /slow", input: [] },
+      "opaque-return": { symbol: "GET /artifact", input: [] },
+      "unbuildable-symbol": { symbol: "GET /export/{job}", input: [] },
     },
     lifecycle: {
       launch: ["node", "service/server.mjs", "--port", "{{port}}"],

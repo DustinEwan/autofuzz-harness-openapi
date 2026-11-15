@@ -48,7 +48,7 @@ jobs:
       - name: Validate
         run: afz install-harness "$GITHUB_WORKSPACE" --json > report.json
 
-      # The goldens this repository publishes: zero violations, seven template passes, and
+      # The goldens this repository publishes: zero violations, nine template passes, and
       # the same three justified absences on both sides - the crash frame cannot name the
       # document, and no runtime observer counts per-call edges. A deleted or gutted
       # validator fails the second assertion.
@@ -56,6 +56,6 @@ jobs:
         run: |
           jq -e '((.violations | length) == 0)
                  and ((.template.properties | map(select(.verdict == "not-applicable") | .id) | sort) == ["coverage-digest-live","crash-unguarded","stdout-purity"])
-                 and ((.template.properties | map(select(.verdict == "pass")) | length) == 7)' report.json
+                 and ((.template.properties | map(select(.verdict == "pass")) | length) == 9)' report.json
           jq -e '((.validator.properties | map(select(.verdict == "pass")) | length) == 5)
                  and ((.validator.properties | map(select(.verdict == "not-applicable") | .id) | sort) == ["coverage-digest-live","crash-unguarded"])' report.json

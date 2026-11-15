@@ -5,8 +5,15 @@
 // go where OpenAPI says they go, and a JSON body is serialized. A value the ValueTree
 // vocabulary carries but a URL cannot (a Map, a function stub) is a materialization
 // refusal, not a silent `String(map)`.
+//
+// An operation whose own path template cannot be filled is a different failure: no value
+// can build that request, so it raises `BuildError` and `prepare` reports the operation
+// unbuildable rather than preparing a call that could never be sent.
 
 export class MaterializeError extends Error {}
+
+/// The operation itself cannot be turned into a request, whatever the values say.
+export class BuildError extends Error {}
 
 export function materialize(node) {
   switch (node.node) {
@@ -76,6 +83,16 @@ export function buildRequest({ target, values, options }) {
   let body;
 
   const parameters = [...target.locations];
+
+  // A path placeholder the operation declares no parameter for can never be filled, by
+  // this call's values or any other. The defect is in the document, not in the arguments,
+  // so it is a `BuildError` rather than a `MaterializeError`.
+  for (const [placeholder, name] of path.matchAll(/\{([^{}]*)\}/gu)) {
+    if (!parameters.some((parameter) => parameter.in === "path" && parameter.name === name)) {
+      throw new BuildError(`${method} ${path} carries the path placeholder ${placeholder}, which no parameter of the operation fills`);
+    }
+  }
+
   for (let i = 0; i < parameters.length; i += 1) {
     const parameter = parameters[i];
     // The engine may send more values than the operation has parameters (the

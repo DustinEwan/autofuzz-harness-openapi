@@ -81,6 +81,22 @@
         "summary": "Sleeps 10 seconds: only a harness that cuts its own call answers inside the deadline.",
         "responses": { "200": { "description": "eventually", "content": { "text/plain": { "schema": { "type": "string" } } } } }
       }
+    },
+    "/artifact": {
+      "get": {
+        "summary": "Download a stored artifact: opaque bytes the harness reads as text and cannot describe as a value, so the call answers ok with no value.",
+        "responses": {
+          "200": { "description": "the bytes", "content": { "application/octet-stream": { "schema": { "type": "string", "format": "binary" } } } }
+        }
+      }
+    },
+    "/export/{job}": {
+      "get": {
+        "summary": "Fetch an export job's rows. The document declares no `job` parameter, so the path template can never be filled: discovery accepts the signature, prepare reports the operation unbuildable, and every sibling still prepares.",
+        "responses": {
+          "200": { "description": "the export", "content": { "application/json": { "schema": { "type": "object", "properties": { "rows": { "type": "number" } } } } } }
+        }
+      }
     }
   },
   "components": {
